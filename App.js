@@ -1,5 +1,5 @@
 import React from 'react';
-import { StyleSheet, Text, View, TextInput, Button } from 'react-native';
+import { StyleSheet, Text, View, TextInput, Button, AsyncStorage } from 'react-native';
 import TabNavigator from 'react-native-tab-navigator';
 
 export default class App extends React.Component {
@@ -18,7 +18,21 @@ export default class App extends React.Component {
   }
 
   login = () => {
-    console.log('log in dog')
+    fetch('http://10.17.30.158:4000/api/sessions', {
+      method: 'POST',
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        session: {
+          email: this.state.username,
+          password: this.state.password,
+        }
+      })
+    }).then(response => {
+      console.log('response', response)
+    })
   }
 
   signUp = () => {
@@ -37,6 +51,44 @@ export default class App extends React.Component {
         }
       })
     })
+    .then(response => {
+      const test = JSON.parse(response._bodyText).jwt;
+      return test
+    })
+    .then(async (jwt) => {
+      try {
+        await AsyncStorage.setItem('jwt', jwt);
+      } catch (error) {
+        console.log('error saving data')
+      }
+    })
+  }
+
+  test = () => {
+    async function runTest() {
+      try {
+        const value = await AsyncStorage.getItem('jwt');
+        if (value !== null){
+          // We have data!!
+          console.log('value', value);
+          fetch('http://10.17.30.158:4000/api/current_user', {
+            method: 'GET',
+            headers: {
+              'Accept': 'application/json',
+              'Content-Type': 'application/json',
+              'authorization': value
+            }
+          }).then(response => {
+            console.log('XXXXthis is response', response)
+          })
+        }
+      } catch (error) {
+        console.log('error in test')
+      }
+    }
+
+    runTest()
+
   }
 
   render() {
@@ -84,6 +136,13 @@ export default class App extends React.Component {
             <Button
               onPress={this.signUp}
               title='Sign Up'
+            >
+
+            </Button>
+
+            <Button
+              onPress={this.test}
+              title='Test JWT'
             >
 
             </Button>
